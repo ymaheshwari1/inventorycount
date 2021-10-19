@@ -18,4 +18,3 @@ Closes #
 <!-- Please get familiar with following info -->
 
 - [ ] I read and followed [contribution rules](https://github.com/DivanteLtd/vsf-capybara/blob/master/CONTRIBUTING.md)
-- [ ] I have changed the target to hacktoberfest branch
