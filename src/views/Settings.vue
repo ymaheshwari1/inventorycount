@@ -52,21 +52,7 @@
             <ion-icon slot="end" :icon="openOutline" />
           </ion-button>
         </ion-card>
-        <ion-card v-if="hasPermission('APP_COUNT_VIEW') && router.currentRoute.value.fullPath.includes('/tabs/')">
-          <ion-card-header>
-            <ion-card-title>
-              {{ $t("Facility") }}
-            </ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            {{ $t("Specify which facility you want to operate from. Order, inventory and other configuration data will be specific to the facility you select.") }}
-          </ion-card-content>
-          <ion-item lines="none">
-            <ion-select :label="$t('Select facility')" interface="popover" :value="currentFacility.facilityId" @ionChange="setFacility($event)">
-              <ion-select-option v-for="facility in facilities" :key="facility.facilityId" :value="facility.facilityId" >{{ facility.facilityName || facility.facilityId }}</ion-select-option>
-            </ion-select>
-          </ion-item>
-        </ion-card>
+        <DxpFacilitySwitcher v-if="hasPermission('APP_COUNT_VIEW') && router.currentRoute.value.fullPath.includes('/tabs/')" @updateFacility="setFacility($event)"/>
         <ion-card v-if="hasPermission('APP_DRAFT_VIEW') && !router.currentRoute.value.fullPath.includes('/tabs/')">
           <ion-card-header>
             <ion-card-subtitle>
@@ -175,7 +161,6 @@ const appInfo = (process.env.VUE_APP_VERSION_INFO ? JSON.parse(process.env.VUE_A
 const userProfile = computed(() => store.getters["user/getUserProfile"])
 const oms = computed(() => store.getters["user/getInstanceUrl"])
 const omsRedirectionInfo = computed(() => store.getters["user/getOmsRedirectionInfo"])
-const facilities = computed(() => store.getters["user/getFacilities"])
 const currentFacility = computed(() => store.getters["user/getCurrentFacility"])
 const currentProductStore = computed(() => store.getters["user/getCurrentProductStore"])
 const productStores = computed(() => store.getters["user/getProductStores"])
@@ -200,9 +185,7 @@ function goToLaunchpad() {
   window.location.href = `${process.env.VUE_APP_LOGIN_URL}`
 }
 
-async function setFacility(event: CustomEvent) {
-  const facilityId = event.detail.value
-  const facility = facilities.value.find((facility: any) => facility.facilityId === facilityId)
+async function setFacility(facility: any) {
   await store.dispatch("user/updateCurrentFacility", facility)
 }
 

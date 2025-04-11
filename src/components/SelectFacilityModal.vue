@@ -59,10 +59,12 @@ import { computed, defineProps, onMounted, ref } from "vue";
 import { close, saveOutline } from "ionicons/icons";
 import { translate } from "@/i18n"
 import store from "@/store";
+import { useUserStore } from '@hotwax/dxp-components';
 
 const props = defineProps(["currentCycleCount"])
+const userStore = useUserStore()
 
-const facilities = computed(() => store.getters["user/getFacilities"])
+const facilities = computed(() => userStore.getFacilites)
 
 const isFacilityUpdated = computed(() => {
   return props.currentCycleCount.facilityId !== selectedFacilityId.value

@@ -31,7 +31,7 @@ const maxAge = process.env.VUE_APP_CACHE_MAX_AGE ? parseInt(process.env.VUE_APP_
 
 initialise({
   token: userToken.value,
-  instanceUrl: instanceUrl.value,
+  instanceUrl: instanceUrl.value.replace("inventory-cycle-count/", ""), // TODO: remove component replace logic once we start storing the oms url in state without component name
   cacheMaxAge: maxAge,
   events: {
     responseError: () => {
@@ -40,7 +40,8 @@ initialise({
     queueTask: (payload: any) => {
       emitter.emit("queueTask", payload);
     }
-  }
+  },
+  systemType: "MOQUI"
 })
 
 async function presentLoader(options = { message: "Click the backdrop to dismiss.", backdropDismiss: true }) {

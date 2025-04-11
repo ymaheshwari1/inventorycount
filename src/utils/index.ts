@@ -4,9 +4,10 @@ import store from "@/store";
 import { saveAs } from 'file-saver';
 import { JsonToCsvOption } from '@/types';
 import Papa from 'papaparse'
+import { useUserStore } from '@hotwax/dxp-components';
 
+// const userStore = useUserStore()
 const cycleCountStats = (id: string) => store.getters["count/getCycleCountStats"](id)
-const facilities: any = () => store.getters["user/getFacilities"]
 
 const dateOrdinalSuffix = {
   1: 'st',
@@ -107,7 +108,7 @@ function getCycleCountStats(id: string, isHardCount = false) {
 }
 
 function getFacilityName(id: string) {
-  return facilities().find((facility: any) => facility.facilityId === id)?.facilityName || id
+  return useUserStore().getFacilites.find((facility: any) => facility.facilityId === id)?.facilityName || id
 }
 
 function getPartyName(item: any) {

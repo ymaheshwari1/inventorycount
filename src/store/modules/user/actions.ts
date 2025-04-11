@@ -7,8 +7,8 @@ import { hasError, showToast } from "@/utils"
 import logger from "@/logger"
 import { translate } from "@/i18n"
 import { Settings } from "luxon";
-import { resetConfig } from "@/adapter"
-import { useAuthStore } from "@hotwax/dxp-components"
+import { resetConfig, updateToken, updateInstanceUrl } from "@/adapter"
+import { useAuthStore, useUserStore } from "@hotwax/dxp-components"
 import emitter from "@/event-bus"
 import { getServerPermissionsFromRules, hasPermission, prepareAppPermissions, resetPermissions, setPermissions } from "@/authorization"
 
@@ -61,13 +61,34 @@ const actions: ActionTree<UserState, RootState> = {
         Settings.defaultZone = userProfile.timeZone;
       }
 
-      const facilities = await dispatch("fetchFacilities",{ partyId: userProfile.partyId, token: api_key, isAdminUser: appPermissions.some((appPermission: any) => appPermission?.action === "APP_DRAFT_VIEW" ) })
+      // Update dxp state, as we need to set updated token and oms in dxp
+      const authStore = useAuthStore()
+      authStore.$patch({
+        token: { value: api_key, expiration: authStore.token.expiration as any },
+        oms
+      })
+      
+      const isAdminUser = appPermissions.some((appPermission: any) => appPermission?.action === "APP_DRAFT_VIEW")
+      const facilities = await useUserStore().getUserFacilities(isAdminUser ? "" : userProfile.partyId, "", isAdminUser, {
+        parentTypeId: "VIRTUAL_FACILITY",
+        parentTypeId_not: "Y",
+        facilityTypeId: "VIRTUAL_FACILITY",
+        facilityTypeId_not: "Y"
+      });
+      console.log('facilities', facilities)
       if(!facilities.length) throw "Unable to login. User is not associated with any facility"
-
+      // Updating current facility with a default first facility when fetching facilities on login
+      if(facilities.length) {
+        await dispatch("updateCurrentFacility", facilities[0])
+      }
+      
       setPermissions(appPermissions);
       if(omsRedirectionUrl && token) {
         dispatch("setOmsRedirectionInfo", { url: omsRedirectionUrl, token })
       }
+      
+      updateToken(api_key);
+
       commit(types.USER_PERMISSIONS_UPDATED, appPermissions);
       commit(types.USER_TOKEN_CHANGED, { newToken: api_key })
       commit(types.USER_INFO_UPDATED, userProfile);
@@ -86,6 +107,7 @@ const actions: ActionTree<UserState, RootState> = {
     if(!payload.isUserUnauthorised) emitter.emit('presentLoader', { message: 'Logging out', backdropDismiss: false })
 
     const authStore = useAuthStore()
+    const userStore = useUserStore()
 
     // TODO add any other tasks if need
     commit(types.USER_END_SESSION)
@@ -96,8 +118,8 @@ const actions: ActionTree<UserState, RootState> = {
 
     // reset plugin state on logout
     authStore.$reset()
+    userStore.$reset()
 
-    commit(types.USER_FACILITIES_UPDATED, [])
     commit(types.USER_CURRENT_FACILITY_UPDATED, {})
     commit(types.USER_PRODUCT_STORES_UPDATED, [])
     commit(types.USER_PRODUCT_STORE_SETTING_UPDATED, { showQoh: false, forceScan: false, barcodeIdentificationPref: "internalName", productIdentificationPref: {
@@ -134,64 +156,11 @@ const actions: ActionTree<UserState, RootState> = {
   */
   setUserInstanceUrl({ commit }, payload) {
     commit(types.USER_INSTANCE_URL_UPDATED, payload)
-  },
-
-  async fetchFacilities({ commit, dispatch }, payload) {
-    let facilities: Array<any> = []
-    try {
-      let associatedFacilityIds: Array<string> = []
-      let params = {}
-
-      if(!payload.isAdminUser) {
-        const associatedFacilitiesResp = await UserService.fetchAssociatedFacilities({
-          partyId: payload.partyId,
-          pageSize: 200
-        }, payload.token)
-
-        if(!hasError(associatedFacilitiesResp)) {
-          // Filtering facilities on which thruDate is set, as we are unable to pass thruDate check in the api payload
-          // Considering that the facilities will always have a thruDate of the past.
-          associatedFacilityIds = associatedFacilitiesResp.data.filter((facility: any) => !facility.thruDate)?.map((facility: any) => facility.facilityId)
-        }
-
-        if(!associatedFacilityIds.length) {
-          throw "Failed to fetch facilities"
-        }
-
-        params = {
-          facilityId: associatedFacilityIds.join(","),
-          facilityId_op: "in",
-          pageSize: associatedFacilityIds.length,
-        }
-      }
-
-      // Making this call to fetch the facility details like name, as the above api does not return facility details, need to replace this once api has support to return facility details
-      const resp = await UserService.fetchFacilities({
-        parentTypeId: "VIRTUAL_FACILITY",
-        parentTypeId_not: "Y",
-        facilityTypeId: "VIRTUAL_FACILITY",
-        facilityTypeId_not: "Y",
-        pageSize: 200,
-        ...params
-      }, payload.token)
-
-      if(!hasError(resp)) {
-        facilities = resp.data
-      }
-    } catch(err) {
-      logger.error("Failed to fetch facilities")
-    }
-
-    // Updating current facility with a default first facility when fetching facilities on login
-    if(facilities.length) {
-      dispatch("updateCurrentFacility", facilities[0])
-    }
-
-    commit(types.USER_FACILITIES_UPDATED, facilities)
-    return facilities
+    updateInstanceUrl(payload)
   },
 
   async updateCurrentFacility({ commit, dispatch }, facility) {
+    await useUserStore().setFacilityPreference(facility);
     if(!facility.productStore) {
       // Fetching productStore for the facility and storing it in the facility, as we want to manage the productStores separately as well
       // Thus to not have any conflicts in the information, saving the productStores on facility

@@ -126,12 +126,14 @@ import store from "@/store";
 import router from "@/router";
 import { DateTime } from "luxon";
 import { getDateWithOrdinalSuffix } from "@/utils";
+import { useUserStore } from '@hotwax/dxp-components';
 
 const dateTimeModalOpen = ref(false)
 const currentDateFilter = ref("");
 const currentDateFilterValue = ref("") as any;
+const userStore = useUserStore()
 
-const facilities = computed(() => store.getters["user/getFacilities"])
+const facilities = computed(() => userStore.getFacilites)
 const query = computed(() => store.getters["count/getQuery"])
 
 function openDateTimeModal(dateFilterKey: string) {
