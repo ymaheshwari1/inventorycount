@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
         '@common': path.resolve(__dirname, '../../common')
       },
-      dedupe: ['vue', 'pinia', 'vue-router'],
+      dedupe: ['vue', 'vue-router', '@ionic/vue', '@ionic/vue-router', 'pinia', 'vue-i18n'],
     },
     test: {
       globals: true,

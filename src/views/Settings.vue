@@ -52,7 +52,7 @@
           <ion-card-content>
             {{ translate('This is the name of the OMS you are connected to right now. Make sure that you are connected to the right instance before proceeding.') }}
           </ion-card-content>
-          <ion-button :disabled="!commonUtil.getToken() || !commonUtil.getOmsURL() || !useUserProfile().hasPermission('COMMERCEUSER_VIEW')" v-if="!commonUtil.isAppEmbedded()" @click="goToOms(commonUtil.getToken() as string, commonUtil.getOmsURL())" fill="clear" data-testid="settings-go-to-oms-btn">
+          <ion-button :disabled="!commonUtil.getToken() || !commonUtil.getOmsURL() || !useUserProfile().hasPermission('COMMERCEUSER_VIEW')" v-if="!commonUtil.isAppEmbedded() && !commonUtil.isMoqui()" @click="goToOms(commonUtil.getToken() as string, commonUtil.getOmsURL())" fill="clear" data-testid="settings-go-to-oms-btn">
             {{ translate('Go to OMS') }}
             <ion-icon slot="end" :icon="openOutline" />
           </ion-button>
